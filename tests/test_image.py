@@ -4,8 +4,8 @@ exact values. So, some tests will save images after the
 functions has been processed, and the tests will check if
 the file exists or not.
 """
-from gettext import find
 import unittest
+import os
 from pathlib import Path
 THIS_DIR = Path(__file__).parent
 
@@ -17,11 +17,11 @@ from image.find_sudoku import find_contours, find_corners, find_sudoku_contour, 
 class TestPreprocess(unittest.TestCase):
     def setUp(self):
         # get absolute path
-        img1_path = THIS_DIR.parent / 'resources/1.png'
-        img2_path = THIS_DIR.parent / 'resources/2.png'
-        img3_path = THIS_DIR.parent / 'resources/3.png'
-        img4_path = THIS_DIR.parent / 'resources/4.png'
-        img5_path = THIS_DIR.parent / 'resources/5.png'
+        img1_path = THIS_DIR.parent / 'resources/sudoku1.png'
+        img2_path = THIS_DIR.parent / 'resources/sudoku2.png'
+        img3_path = THIS_DIR.parent / 'resources/sudoku3.png'
+        img4_path = THIS_DIR.parent / 'resources/sudoku4.png'
+        img5_path = THIS_DIR.parent / 'resources/sudoku5.png'
         # load image into img_list
         self.img_list = []
         self.img_list.append(cv2.imread(str(img1_path)))
@@ -37,7 +37,7 @@ class TestPreprocess(unittest.TestCase):
             threshold = threshold_image(img_list[i])
             imgi_path = THIS_DIR / f'preprocess_img/threshold_img/thresh{i+1}.png'
             cv2.imwrite(str(imgi_path), threshold)
-        self.assertTrue(True)
+        self.assertTrue(os.path.isfile(str(imgi_path)))
 
 
     def test_dilate(self):
@@ -46,7 +46,7 @@ class TestPreprocess(unittest.TestCase):
             dilate = dilate_image(img_list[i])
             imgi_path = THIS_DIR / f'preprocess_img/dilate_img/dilate{i+1}.png'
             cv2.imwrite(str(imgi_path), dilate)
-        self.assertTrue(True)
+        self.assertTrue(os.path.isfile(str(imgi_path)))
 
 
     def test_thresh_dilate(self):
@@ -56,7 +56,7 @@ class TestPreprocess(unittest.TestCase):
             thresh_dilate = dilate_image(threshold)
             imgi_path = THIS_DIR / f'preprocess_img/thresh_dilate_img/thresh_dilate{i+1}.png'
             cv2.imwrite(str(imgi_path), thresh_dilate)
-        self.assertTrue(True)
+        self.assertTrue(os.path.isfile(str(imgi_path)))
 
 
 class TestSortCorners(unittest.TestCase):
@@ -84,7 +84,7 @@ class TestSortCorners(unittest.TestCase):
 
 class TestFindSudoku(unittest.TestCase):
     def setUp(self):
-        original_path = THIS_DIR.parent / 'resources/2.png'
+        original_path = THIS_DIR.parent / 'resources/sudoku2.png'
         original_img = cv2.imread(str(original_path))
         self.original_img = original_img
         thresh_dilate_path = THIS_DIR.parent / 'resources/thresh_dilate2.png'
@@ -106,7 +106,7 @@ class TestFindSudoku(unittest.TestCase):
         cv2.drawContours(img, contours, -1, (0,255,0), 3)
         img_path = THIS_DIR / 'contours_img/contours.png'
         cv2.imwrite(str(img_path), img)
-
+        self.assertTrue(os.path.isfile(str(img_path)))
 
     def test_find_sudoku_contour(self):
         img = self.img
@@ -119,6 +119,7 @@ class TestFindSudoku(unittest.TestCase):
         cv2.drawContours(img, [sudoku_contour], 0, (0,255,0), 3)
         img_path = THIS_DIR / 'contours_img/sudoku_contour.png'
         cv2.imwrite(str(img_path), img)
+        self.assertTrue(os.path.isfile(str(img_path)))
 
 
     def test_find_corners(self):
@@ -129,6 +130,7 @@ class TestFindSudoku(unittest.TestCase):
             cv2.circle(img, coord, radius=15, color=(0,255,0), thickness=-1)
         img_path = THIS_DIR / 'contours_img/corners.png'
         cv2.imwrite(str(img_path), img)
+        self.assertTrue(os.path.isfile(str(img_path)))
 
 
     def test_get_dimention_of_contour(self):
@@ -148,3 +150,5 @@ class TestFindSudoku(unittest.TestCase):
         pre_crop_path = THIS_DIR / 'contours_img/pre_crop.png'
         cv2.imwrite(str(ori_crop_path), original_crop)
         cv2.imwrite(str(pre_crop_path), preprocess_crop)
+        self.assertTrue(os.path.isfile(str(ori_crop_path)))
+        self.assertTrue(os.path.isfile(str(pre_crop_path)))
