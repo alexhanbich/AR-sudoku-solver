@@ -7,12 +7,14 @@ the file exists or not.
 import unittest
 import os
 from pathlib import Path
+
+from image.insert_sudoku import undo_transformation
 THIS_DIR = Path(__file__).parent
 
 import cv2
 import numpy as np
 from image.preprocess import threshold_image, dilate_image
-from image.find_sudoku import find_contours, find_corners, find_sudoku_contour, get_dimention_of_contour, get_transformation_matrix, sort_points, crop_image
+from image.find_sudoku import extract_sudoku, find_contours, find_corners, find_sudoku_contour, get_dimention_of_contour, get_transformation_matrix, sort_points, crop_image
 
 class TestPreprocess(unittest.TestCase):
     def setUp(self):
@@ -96,8 +98,7 @@ class TestFindSudoku(unittest.TestCase):
             self.thresh_ratio = 0.15
             self.sudoku_contour = find_sudoku_contour(self.contours, self.thresh_area, self.thresh_ratio)
         except Exception as e:
-            self.fail(e)
-        
+            self.fail(e)  
 
 
     def test_find_contours(self):

@@ -71,7 +71,7 @@ def crop_image(ori_img, preprocess_img, contour):
 def extract_sudoku(ori_img, preprocess_img):
     contours = find_contours(preprocess_img)
     try:
-        contour = find_sudoku_contour(contours)
+        contour = find_sudoku_contour(contours, thresh_area=int(ori_img.shape[1]*ori_img.shape[0]/3), thresh_ratio=0.15)
     except Exception as e:
         raise e
     return crop_image(ori_img, preprocess_img, contour)
