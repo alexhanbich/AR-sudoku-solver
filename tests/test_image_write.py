@@ -1,68 +1,77 @@
 import unittest
 import os
 import cv2
-import numpy as np
 from pathlib import Path
-from image_processing.extract_digits import extract_digits, is_digit_component
-from image_processing.preprocess import threshold_image, dilate_image
-from image_processing.insert_sudoku import insert_digits, undo_transformation
-from image_processing.find_sudoku import extract_sudoku
+from digit_processing.extract_digits import extract_digits
+from digit_processing.predict_digits import load_model, predict_digits
+from image_read.extract_sudoku import extract_sudoku
+from image_read.preprocess import dilate_image, threshold_image
+from image_write.insert_solution import create_img_from_solution_grid, overlay_images, undo_transformation
+from sudoku.solve import SolveSudoku
 THIS_DIR = Path(__file__).parent
 
 
-class TestExtractDigits(unittest.TestCase):
+class TestSolutionGridToImage(unittest.TestCase):
     def setUp(self):
-        img_path = THIS_DIR.parent / 'resources/ori_crop.png'
-        self.img = cv2.imread(str(img_path))
-        thresh = threshold_image(self.img)
-        self.preprocessed_img = dilate_image(thresh)
-        self.original_w, self.original_h = self.img.shape[1], self.img.shape[0]
+        img_path = THIS_DIR.parent / 'resources/cropped_binary.png'
+        img = cv2.imread(str(img_path))
+        # convert to GRAY so it can be processed
+        binary_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        self.sudoku_w, self.sudoku_h = int(binary_img.shape[1]), int(binary_img.shape[0])
+        digits, coords = extract_digits(binary_img)
+        model = load_model()
+        vals = predict_digits(digits, model)
+        solver = SolveSudoku(vals, coords)
+        self.unsolved_grid = solver.get_grid().copy()
+        solver.solve()
+        self.solved_grid = solver.get_grid().copy()
 
 
-    def test_digit_connected_components(self):
-        original_img = self.img
-        preprocessed_img = self.preprocessed_img
-        cnt, _, stats, centroids = cv2.connectedComponentsWithStats(preprocessed_img)
-        self.assertTrue(cnt > 10)
-        for i in range(0, cnt):
-            if not is_digit_component(stats[i], self.original_w, self.original_h):
-                continue
-            (x, y, w, h, _) = stats[i]
-            cv2.rectangle(original_img, (x, y, w, h), (0, 255, 0), 3)
-        img_path = THIS_DIR / f'contours_img/connected_components.png'
-        cv2.imwrite(str(img_path), original_img)
-        self.assertTrue(os.path.isfile(str(img_path)))
+    def test_solution_grid_to_img(self):
+        solution_img = create_img_from_solution_grid(self.sudoku_w, self.sudoku_h, self.solved_grid, self.unsolved_grid)
+        solution_path = THIS_DIR / 'solution_img/solution_img.png'
+        cv2.imwrite(str(solution_path), solution_img)
+        self.assertTrue(os.path.isfile(str(solution_path)))
 
 
-    def test_extract_digits(self):
-        preprocessed_img = self.preprocessed_img
-        digits, _ = extract_digits(preprocessed_img)
-        self.assertTrue(len(digits) > 0)
-        for i in range(len(digits)):
-            imgi_path = THIS_DIR / f'digits_img/digit{i+1}.png'
-            cv2.imwrite(str(imgi_path), digits[i])
-            self.assertTrue(os.path.isfile(str(imgi_path)))
-
-
-class TestInsertSudoku(unittest.TestCase):
+class TestUndoTransform(unittest.TestCase):
     def setUp(self):
-        original_path = THIS_DIR.parent / 'resources/sudoku2.png'
-        original_img = cv2.imread(str(original_path))
-        thresh_img = threshold_image(original_img)
-        preprocessed_img = dilate_image(thresh_img)
-        ori_crop, _, M = extract_sudoku(original_img, preprocessed_img)
-        self.ori_crop = ori_crop
-        self.M = M
-        self.dimensions = (int(original_img.shape[1]), int(original_img.shape[0]))
+        # Read img
+        img_path = THIS_DIR.parent / 'resources/sudoku2.png'
+        img = cv2.imread(str(img_path))
+        self.img = img
+        self.img_w, self.img_h = img.shape[1], img.shape[0]
+        # preprocess
+        thresh = threshold_image(img)
+        thresh_dilate = dilate_image(thresh)
+        binary_img = thresh_dilate
+        # extract_sudoku from img
+        cropped_binary_img, self.M = extract_sudoku(binary_img)
+        sudoku_w, sudoku_h = int(cropped_binary_img.shape[1]), int(cropped_binary_img.shape[0])
+        # extract digits from sudoku
+        digits, coords = extract_digits(cropped_binary_img)
+        # predict digits
+        model = load_model()
+        vals = predict_digits(digits, model)
+        # solve sudoku
+        solver = SolveSudoku(vals, coords)
+        unsolved_grid = solver.get_grid().copy()
+        solver.solve()
+        solved_grid = solver.get_grid().copy()
+        # create img from solution grid
+        self.solution_img = create_img_from_solution_grid(sudoku_w, sudoku_h, solved_grid, unsolved_grid)
 
-
-    def test_insert_digits(self):
-        w, h = self.ori_crop[1], self.ori_crop[0]
-        img = np.zeros((w,h,3), dtype=np.uint8)
-        solution_img = insert_digits(img, self.)
 
     def test_undo_transformation(self):
-        undo_img = undo_transformation(self.ori_crop, self.M, self.dimensions)
+        undo_img = undo_transformation(self.solution_img, self.M, self.img_w, self.img_h)
         undo_path = THIS_DIR / 'transformation_img/undo_img.png'
         cv2.imwrite(str(undo_path), undo_img)
         self.assertTrue(os.path.isfile(str(undo_path)))
+
+
+    def test_merge_images(self):
+        undo_img = undo_transformation(self.solution_img, self.M, self.img_w, self.img_h)
+        final_img = overlay_images(self.img, undo_img)
+        final_path = THIS_DIR / 'transformation_img/final.png'
+        cv2.imwrite(str(final_path), final_img)
+        self.assertTrue(os.path.isfile(str(final_path)))

@@ -12,18 +12,16 @@ THIS_DIR = Path(__file__).parent
 
 import cv2
 import numpy as np
-from image_processing.preprocess import threshold_image, dilate_image
-from image_processing.find_sudoku import find_contours, find_corners, find_sudoku_contour, sort_points, crop_image
+from image_read.preprocess import threshold_image, dilate_image
+from image_read.extract_sudoku import extract_sudoku, find_contours, find_corners, find_sudoku_contour, sort_points, crop_image
 
 class TestPreprocess(unittest.TestCase):
     def setUp(self):
-        # get absolute path
         img1_path = THIS_DIR.parent / 'resources/sudoku1.png'
         img2_path = THIS_DIR.parent / 'resources/sudoku2.png'
         img3_path = THIS_DIR.parent / 'resources/sudoku3.png'
         img4_path = THIS_DIR.parent / 'resources/sudoku4.png'
         img5_path = THIS_DIR.parent / 'resources/sudoku5.png'
-        # load image into img_list
         self.img_list = []
         self.img_list.append(cv2.imread(str(img1_path)))
         self.img_list.append(cv2.imread(str(img2_path)))
@@ -85,58 +83,88 @@ class TestSortCorners(unittest.TestCase):
 
 class TestFindSudoku(unittest.TestCase):
     def setUp(self):
-        original_path = THIS_DIR.parent / 'resources/sudoku2.png'
-        original_img = cv2.imread(str(original_path))
-        self.original_img = original_img
-        thresh_dilate_path = THIS_DIR.parent / 'resources/thresh_dilate2.png'
-        thresh_dilate_img = cv2.imread(str(thresh_dilate_path))
-        self.img = thresh_dilate_img
-        self.contours = find_contours(self.img)
-        try:
-            self.thresh_area = self.img.shape[1]*self.img.shape[0]/4
-            self.thresh_ratio = 0.15
-            self.sudoku_contour = find_sudoku_contour(self.contours, self.thresh_area, self.thresh_ratio)
-        except Exception as e:
-            self.fail(e)  
+        img_path = THIS_DIR.parent / 'resources/sudoku2.png'
+        img = cv2.imread(str(img_path))
+        self.color_img = img
+        thresh = threshold_image(img)
+        thresh_dilate = dilate_image(thresh)
+        self.binary_img = thresh_dilate
 
 
     def test_find_contours(self):
-        img = self.img
-        contours = find_contours(img)
-        cv2.drawContours(img, contours, -1, (0,255,0), 3)
+        binary_img = self.binary_img
+        contours = find_contours(binary_img)
+        # convert to BGR so lines can have color
+        BGR_img = cv2.cvtColor(binary_img, cv2.COLOR_GRAY2BGR)
+        cv2.drawContours(BGR_img, contours, -1, (0,255,0), 3)
         img_path = THIS_DIR / 'contours_img/contours.png'
-        cv2.imwrite(str(img_path), img)
+        cv2.imwrite(str(img_path), BGR_img)
         self.assertTrue(os.path.isfile(str(img_path)))
 
+
     def test_find_sudoku_contour(self):
-        img = self.img
-        contours = self.contours
+        binary_img = self.binary_img
+        contours = find_contours(binary_img)
         try:
-            sudoku_contour = find_sudoku_contour(contours, self.thresh_area, self.thresh_ratio)
+            thresh_area = self.binary_img.shape[1]*self.binary_img.shape[0]/4
+            thresh_ratio = 0.15
+            sudoku_contour = find_sudoku_contour(contours, thresh_area, thresh_ratio)
         except Exception as e:
             self.fail(e)
-        cv2.drawContours(img, [sudoku_contour], 0, (0,255,0), 3)
+        # convert to BGR so lines can have color
+        bgr_img = cv2.cvtColor(binary_img, cv2.COLOR_GRAY2BGR)
+        cv2.drawContours(bgr_img, [sudoku_contour], 0, (0,255,0), 3)
         img_path = THIS_DIR / 'contours_img/sudoku_contour.png'
-        cv2.imwrite(str(img_path), img)
+        cv2.imwrite(str(img_path), bgr_img)
         self.assertTrue(os.path.isfile(str(img_path)))
 
 
     def test_find_corners(self):
-        img = self.img
-        sudoku_contour = self.sudoku_contour
+        binary_img = self.binary_img
+        contours = find_contours(binary_img)
+        try:
+            thresh_area = self.binary_img.shape[1]*self.binary_img.shape[0]/4
+            thresh_ratio = 0.15
+            sudoku_contour = find_sudoku_contour(contours, thresh_area, thresh_ratio)
+        except Exception as e:
+            self.fail(e)
         coords = find_corners(sudoku_contour)
+        # convert to BGR so lines can have color
+        bgr_img = cv2.cvtColor(binary_img, cv2.COLOR_GRAY2BGR)
         for coord in coords:
-            cv2.circle(img, coord, radius=15, color=(0,255,0), thickness=-1)
+            cv2.circle(bgr_img, coord, radius=15, color=(0,255,0), thickness=-1)
         img_path = THIS_DIR / 'contours_img/corners.png'
-        cv2.imwrite(str(img_path), img)
+        cv2.imwrite(str(img_path), bgr_img)
         self.assertTrue(os.path.isfile(str(img_path)))
 
 
+class TestExtractSudoku(unittest.TestCase):
+    def setUp(self):
+        img_path = THIS_DIR.parent / 'resources/sudoku2.png'
+        img = cv2.imread(str(img_path))
+        self.color_img = img
+        thresh = threshold_image(img)
+        thresh_dilate = dilate_image(thresh)
+        self.binary_img = thresh_dilate
+
+
     def test_crop_image(self):
-        original_crop, preprocess_crop, M = crop_image(self.original_img, self.img, self.sudoku_contour)
-        ori_crop_path = THIS_DIR / 'contours_img/ori_crop.png'
-        pre_crop_path = THIS_DIR / 'contours_img/pre_crop.png'
-        cv2.imwrite(str(ori_crop_path), original_crop)
-        cv2.imwrite(str(pre_crop_path), preprocess_crop)
-        self.assertTrue(os.path.isfile(str(ori_crop_path)))
-        self.assertTrue(os.path.isfile(str(pre_crop_path)))
+        binary_img = self.binary_img
+        contours = find_contours(binary_img)
+        try:
+            thresh_area = self.binary_img.shape[1]*self.binary_img.shape[0]/4
+            thresh_ratio = 0.15
+            sudoku_contour = find_sudoku_contour(contours, thresh_area, thresh_ratio)
+        except Exception as e:
+            self.fail(e)
+        cropped_binary_img, M = crop_image(self.binary_img, sudoku_contour)
+        cropped_binary_path = THIS_DIR / 'contours_img/cropped_binary1.png'
+        cv2.imwrite(str(cropped_binary_path),  cropped_binary_img)
+        self.assertTrue(os.path.isfile(str(cropped_binary_path)))
+
+
+    def test_extract_sudoku(self):
+        cropped_binary_img, M = extract_sudoku(self.binary_img)
+        cropped_binary_path = THIS_DIR / 'contours_img/cropped_binary2.png'
+        cv2.imwrite(str(cropped_binary_path),  cropped_binary_img)
+        self.assertTrue(os.path.isfile(str(cropped_binary_path)))

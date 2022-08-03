@@ -3,22 +3,20 @@ import numpy as np
 import os
 import cv2
 from pathlib import Path
-from image_processing.predict_digits import load_model, predict_digits
-from image_processing.preprocess import threshold_image, dilate_image
-from image_processing.extract_digits import extract_digits
+from digit_processing.predict_digits import load_model, predict_digits
+from image_read.preprocess import threshold_image, dilate_image
+from digit_processing.extract_digits import extract_digits
 from sudoku.solve import SolveSudoku
 
 THIS_DIR = Path(__file__).parent
 
 class TestSudoku(unittest.TestCase):
     def setUp(self):
-        img_path = THIS_DIR.parent / 'resources/ori_crop.png'
-        img = cv2.imread(str(img_path))
-        thresh = threshold_image(img)
-        preprocessed_img = dilate_image(thresh)
-        self.digits, self.coords = extract_digits(preprocessed_img)
-        self.model = load_model()
-        self.vals = predict_digits(self.digits, self.model)
+        img_path = THIS_DIR.parent / 'resources/cropped_binary.png'
+        cropped_binary_img = cv2.imread(str(img_path), cv2.IMREAD_GRAYSCALE)
+        digits, self.coords = extract_digits(cropped_binary_img)
+        model = load_model()
+        self.vals = predict_digits(digits, model)
 
 
     def test_create_board(self):

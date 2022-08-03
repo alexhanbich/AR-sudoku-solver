@@ -60,18 +60,20 @@ def get_transformation_matrix(contour, w, h):
     return M
 
 
-def crop_image(ori_img, preprocess_img, contour):
+def crop_image(binary_img, contour):
     w,h = get_dimention_of_contour(contour)
     M = get_transformation_matrix(contour, w, h)
-    original_crop = cv2.warpPerspective(ori_img, M, (int(w), int(h)))
-    preprocess_crop = cv2.warpPerspective(preprocess_img, M, (int(w), int(h)))
-    return original_crop, preprocess_crop, M
+    cropped_binary_img = cv2.warpPerspective(binary_img, M, (int(w), int(h)))
+    return cropped_binary_img, M
 
 
-def extract_sudoku(ori_img, preprocess_img):
-    contours = find_contours(preprocess_img)
+def extract_sudoku(binary_img):
+    contours = find_contours(binary_img)
     try:
-        contour = find_sudoku_contour(contours, thresh_area=int(ori_img.shape[1]*ori_img.shape[0]/3), thresh_ratio=0.15)
+        thresh_area = int(binary_img.shape[1]*binary_img.shape[0]/3)
+        thresh_ratio = 0.15
+        contour = find_sudoku_contour(contours, thresh_area, thresh_ratio)
     except Exception as e:
         raise e
-    return crop_image(ori_img, preprocess_img, contour)
+    cropped_binary_img, M = crop_image(binary_img, contour)
+    return cropped_binary_img, M

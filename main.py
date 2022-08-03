@@ -1,21 +1,47 @@
-from image_processing.insert_sudoku import solution_to_image
-from sudoku.solve import SolveSudoku
 import cv2
-from image_processing.preprocess import threshold_image, dilate_image
-from image_processing.extract_digits import extract_digits
-from image_processing.predict_digits import load_model, predict_digits
+from digit_processing.extract_digits import extract_digits
+from digit_processing.predict_digits import load_model, predict_digits
+from image_read.extract_sudoku import extract_sudoku
 
-img = cv2.imread('resources/ori_crop.png')
+from image_read.preprocess import dilate_image, threshold_image
+from image_write.insert_solution import create_img_from_solution_grid, overlay_images, undo_transformation
+from sudoku.solve import SolveSudoku
+
+# Read img
+img = cv2.imread(str('resources/sudoku2.png'))
+# 720p
+dim = (1280, 720)
+resized = cv2.resize(img, dim, interpolation = cv2.INTER_AREA)
+img_w, img_h = img.shape[1], img.shape[0]
+
+# preprocess
 thresh = threshold_image(img)
-preprocessed_img = dilate_image(thresh)
-digits, coords = extract_digits(preprocessed_img)
+thresh_dilate = dilate_image(thresh)
+binary_img = thresh_dilate
+
+# extract_sudoku from img
+cropped_binary_img, M = extract_sudoku(binary_img)
+sudoku_w, sudoku_h = int(cropped_binary_img.shape[1]), int(cropped_binary_img.shape[0])
+
+# extract digits from sudoku
+digits, coords = extract_digits(cropped_binary_img)
+
+# predict digits
 model = load_model()
 vals = predict_digits(digits, model)
 
-
+# solve sudoku
 solver = SolveSudoku(vals, coords)
-ori_grid = solver.get_grid().copy()
+unsolved_grid = solver.get_grid().copy()
 solver.solve()
-grid = solver.get_grid()
-real_grid = solution_to_image(ori_grid, grid)
-print(real_grid)
+solved_grid = solver.get_grid().copy()
+
+# create img from solution grid
+solution_img = create_img_from_solution_grid(sudoku_w, sudoku_h, solved_grid, unsolved_grid)
+
+# unwarp sudoku to img
+undo_img = undo_transformation(solution_img, M, img_w, img_h)
+
+# overlay images
+final = overlay_images(img, undo_img)
+cv2.imwrite('test-final.png', final)
