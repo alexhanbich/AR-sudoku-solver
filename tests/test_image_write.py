@@ -5,31 +5,33 @@ from pathlib import Path
 from digit_processing.extract_digits import extract_digits
 from digit_processing.predict_digits import load_model, predict_digits
 from image_read.extract_sudoku import extract_sudoku
-from image_read.preprocess import dilate_image, threshold_image
+from image_read.preprocess import preprocess_image
 from image_write.insert_solution import create_img_from_solution_grid, overlay_images, undo_transformation
 from sudoku.solve import SolveSudoku
 THIS_DIR = Path(__file__).parent
-
+FILENAME = 'custom-sudoku.png'
 
 class TestSolutionGridToImage(unittest.TestCase):
     def setUp(self):
-        img_path = THIS_DIR.parent / 'resources/cropped_binary.png'
+        img_path = THIS_DIR.parent / f'resources/{FILENAME}'
         img = cv2.imread(str(img_path))
-        # convert to GRAY so it can be processed
-        binary_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        self.sudoku_w, self.sudoku_h = int(binary_img.shape[1]), int(binary_img.shape[0])
-        digits, coords = extract_digits(binary_img)
+        binary_img = preprocess_image(img)
+        cropped_binary_img, _ = extract_sudoku(binary_img)
+        self.cropped_binary_img = cropped_binary_img
+        digits, coords = extract_digits(cropped_binary_img)
         model = load_model()
         vals = predict_digits(digits, model)
         solver = SolveSudoku(vals, coords)
-        self.unsolved_grid = solver.get_grid().copy()
+        self.unsolved_grid = solver.get_grid()
         solver.solve()
-        self.solved_grid = solver.get_grid().copy()
+        self.solved_grid = solver.get_grid()
 
 
     def test_solution_grid_to_img(self):
-        solution_img = create_img_from_solution_grid(self.sudoku_w, self.sudoku_h, self.solved_grid, self.unsolved_grid)
-        solution_path = THIS_DIR / 'solution_img/solution_img.png'
+        binary_img = self.cropped_binary_img
+        sudoku_w, sudoku_h = int(binary_img.shape[1]), int(binary_img.shape[0])
+        solution_img = create_img_from_solution_grid(sudoku_w, sudoku_h, self.solved_grid, self.unsolved_grid)
+        solution_path = THIS_DIR / 'images/image_write/solution_img.png'
         cv2.imwrite(str(solution_path), solution_img)
         self.assertTrue(os.path.isfile(str(solution_path)))
 

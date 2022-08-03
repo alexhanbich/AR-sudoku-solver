@@ -15,7 +15,7 @@ class SolveSudoku():
 
 
     def get_grid(self):
-        return self.grid
+        return self.grid.copy()
 
     
     def is_valid_row(self, row, num):

@@ -70,10 +70,10 @@ def crop_image(binary_img, contour):
 def extract_sudoku(binary_img):
     contours = find_contours(binary_img)
     try:
-        thresh_area = int(binary_img.shape[1]*binary_img.shape[0]/3)
+        thresh_area = int(binary_img.shape[1]*binary_img.shape[0]/6)
         thresh_ratio = 0.15
-        contour = find_sudoku_contour(contours, thresh_area, thresh_ratio)
+        sudoku_contour = find_sudoku_contour(contours, thresh_area, thresh_ratio)
     except Exception as e:
         raise e
-    cropped_binary_img, M = crop_image(binary_img, contour)
+    cropped_binary_img, M = crop_image(binary_img, sudoku_contour)
     return cropped_binary_img, M

@@ -6,13 +6,16 @@ def crop_digit(img, stat):
 
 
 def is_digit_component(stat, original_w, original_h):
-    cell_area = original_w * original_h // 81
-    thresh_min_area = cell_area * 0.05
-    thresh_max_area = cell_area
+    cell_w = original_w // 9
+    cell_h = original_h // 9
+    thresh_min_width = cell_w * 0.12
+    thresh_max_width = cell_w * 0.6
+    thresh_min_height = cell_h * 0.4
+    thresh_max_height = cell_h * 0.9
     (_, _, w, h, _) = stat
-    if w*h < thresh_min_area:
+    if w < thresh_min_width or w > thresh_max_width:
         return False
-    if w*h > thresh_max_area:
+    if h < thresh_min_height or h > thresh_max_height:
         return False
     return True
 

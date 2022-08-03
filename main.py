@@ -7,20 +7,31 @@ from image_read.preprocess import dilate_image, threshold_image
 from image_write.insert_solution import create_img_from_solution_grid, overlay_images, undo_transformation
 from sudoku.solve import SolveSudoku
 
+
+# cv2.imshow(' ', img)
 # Read img
-img = cv2.imread(str('resources/sudoku2.png'))
-# 720p
+img = cv2.imread(str('resources/custom-sudoku2.png'))
+
+
+# resize to 720p
 dim = (1280, 720)
-resized = cv2.resize(img, dim, interpolation = cv2.INTER_AREA)
+img = cv2.resize(img, dim, interpolation = cv2.INTER_AREA)
+cv2.imshow(' ', img)
+cv2.waitKey(0)
 img_w, img_h = img.shape[1], img.shape[0]
 
 # preprocess
 thresh = threshold_image(img)
-thresh_dilate = dilate_image(thresh)
-binary_img = thresh_dilate
+# thresh_dilate = dilate_image(thresh)
+binary_img = thresh
+cv2.imshow(' ', binary_img)
+cv2.waitKey(0)
 
 # extract_sudoku from img
 cropped_binary_img, M = extract_sudoku(binary_img)
+cv2.imshow(' ', cropped_binary_img)
+cv2.imwrite('custom-binary.png', cropped_binary_img)
+cv2.waitKey(0)
 sudoku_w, sudoku_h = int(cropped_binary_img.shape[1]), int(cropped_binary_img.shape[0])
 
 # extract digits from sudoku
