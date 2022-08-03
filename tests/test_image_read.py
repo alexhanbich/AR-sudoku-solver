@@ -8,13 +8,12 @@ import unittest
 import os
 from pathlib import Path
 
-from image.insert_sudoku import undo_transformation
 THIS_DIR = Path(__file__).parent
 
 import cv2
 import numpy as np
-from image.preprocess import threshold_image, dilate_image
-from image.find_sudoku import extract_sudoku, find_contours, find_corners, find_sudoku_contour, get_dimention_of_contour, get_transformation_matrix, sort_points, crop_image
+from image_processing.preprocess import threshold_image, dilate_image
+from image_processing.find_sudoku import find_contours, find_corners, find_sudoku_contour, sort_points, crop_image
 
 class TestPreprocess(unittest.TestCase):
     def setUp(self):
@@ -39,7 +38,7 @@ class TestPreprocess(unittest.TestCase):
             threshold = threshold_image(img_list[i])
             imgi_path = THIS_DIR / f'preprocess_img/threshold_img/thresh{i+1}.png'
             cv2.imwrite(str(imgi_path), threshold)
-        self.assertTrue(os.path.isfile(str(imgi_path)))
+            self.assertTrue(os.path.isfile(str(imgi_path)))
 
 
     def test_dilate(self):
@@ -48,7 +47,7 @@ class TestPreprocess(unittest.TestCase):
             dilate = dilate_image(img_list[i])
             imgi_path = THIS_DIR / f'preprocess_img/dilate_img/dilate{i+1}.png'
             cv2.imwrite(str(imgi_path), dilate)
-        self.assertTrue(os.path.isfile(str(imgi_path)))
+            self.assertTrue(os.path.isfile(str(imgi_path)))
 
 
     def test_thresh_dilate(self):
@@ -58,7 +57,7 @@ class TestPreprocess(unittest.TestCase):
             thresh_dilate = dilate_image(threshold)
             imgi_path = THIS_DIR / f'preprocess_img/thresh_dilate_img/thresh_dilate{i+1}.png'
             cv2.imwrite(str(imgi_path), thresh_dilate)
-        self.assertTrue(os.path.isfile(str(imgi_path)))
+            self.assertTrue(os.path.isfile(str(imgi_path)))
 
 
 class TestSortCorners(unittest.TestCase):
@@ -112,7 +111,6 @@ class TestFindSudoku(unittest.TestCase):
     def test_find_sudoku_contour(self):
         img = self.img
         contours = self.contours
-        
         try:
             sudoku_contour = find_sudoku_contour(contours, self.thresh_area, self.thresh_ratio)
         except Exception as e:
@@ -132,17 +130,6 @@ class TestFindSudoku(unittest.TestCase):
         img_path = THIS_DIR / 'contours_img/corners.png'
         cv2.imwrite(str(img_path), img)
         self.assertTrue(os.path.isfile(str(img_path)))
-
-
-    def test_get_dimention_of_contour(self):
-        w,h = get_dimention_of_contour(self.sudoku_contour)
-        self.assertIsNotNone(w)
-        self.assertIsNotNone(h)
-
-    def test_get_transformation_matrix(self):
-        w,h = get_dimention_of_contour(self.sudoku_contour)
-        M = get_transformation_matrix(self.sudoku_contour, w, h)
-        self.assertIsNotNone(M)
 
 
     def test_crop_image(self):
